@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CCTV Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { text-align: center; font-family: sans-serif; background: #f0f0f0; }
+        video { width: 90%; border-radius: 10px; margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; background: #0088cc; color: white; border: none; border-radius: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h3>CCTV Camera Access</h3>
+    <video id="video" autoplay playsinline></video>
+    <br>
+    <button id="capture">ဓာတ်ပုံရိုက်ပြီး ပို့မည်</button>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureButton = document.getElementById('capture');
+        const canvas = document.getElementById('canvas');
+
+        // User ရဲ့ Camera ကို Access လုပ်ခြင်း
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { alert("Camera ဖွင့်မရပါ: " + err); });
+
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // ပုံကို Base64 data အဖြစ်ပြောင်းလဲခြင်း
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Telegram Bot ဆီသို့ data ပြန်ပို့ခြင်း
+            window.Telegram.WebApp.sendData(JSON.stringify({image: imageData}));
+            window.Telegram.WebApp.close();
+        });
+
+        window.Telegram.WebApp.ready();
+    </script>
+</body>
+</html>
