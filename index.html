@@ -4,21 +4,20 @@
     <title>CCTV Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { text-align: center; font-family: sans-serif; background: #f0f0f0; padding: 20px; }
-        video { width: 100%; max-width: 400px; border-radius: 10px; background: #000; }
+        body { text-align: center; font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        video { width: 100%; max-width: 400px; border-radius: 10px; border: 2px solid #0088cc; }
         button { 
-            padding: 12px 24px; font-size: 16px; background: #0088cc; 
-            color: white; border: none; border-radius: 8px; margin-top: 15px;
-            cursor: pointer;
+            padding: 15px 30px; font-size: 16px; background: #0088cc; 
+            color: white; border: none; border-radius: 50px; margin-top: 20px;
+            font-weight: bold; width: 80%;
         }
-        button:active { background: #006699; }
     </style>
 </head>
 <body>
-    <h3>Camera Access</h3>
+    <h3>Camera System</h3>
     <video id="video" autoplay playsinline></video>
     <br>
-    <button id="capture">ဓာတ်ပုံရိုက်ပြီး ပို့မည်</button>
+    <button id="capture">ဓာတ်ပုံရိုက်မည်</button>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
@@ -26,39 +25,42 @@
         const captureButton = document.getElementById('capture');
         const canvas = document.getElementById('canvas');
         const tg = window.Telegram.WebApp;
-
         tg.ready();
-        tg.expand(); // App ကို screen အပြည့်ချဲ့လိုက်တာပါ
+        tg.expand();
 
-        // ရှေ့ကင်မရာ (သို့) နောက်ကင်မရာ ရွေးချယ်နိုင်ရန် facingMode ထည့်သွင်းခြင်း
-        navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "user" } // "user" က ရှေ့ကင်မရာ၊ "environment" က နောက်ကင်မရာ
-        })
-        .then(stream => { 
-            video.srcObject = stream; 
-        })
-        .catch(err => { 
-            alert("Camera Error: " + err.name); 
-        });
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => alert("Camera Error"));
 
-        captureButton.addEventListener('click', () => {
+        captureButton.addEventListener('click', async () => {
             const context = canvas.getContext('2d');
-            
-            // ပုံကို အနည်းငယ် သေးလိုက်ခြင်း (Data limit မကျော်စေရန်)
-            canvas.width = 400; 
-            canvas.height = (video.videoHeight / video.videoWidth) * 400;
-            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // quality ကို 0.5 (50%) ထိလျှော့ချလိုက်ခြင်းဖြင့် string တိုသွားစေသည်
-            const imageData = canvas.toDataURL('image/jpeg', 0.5);
-            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            captureButton.innerText = "ပို့နေသည်...";
+            captureButton.disabled = true;
+
+            // သင့်ရဲ့ Render Server URL ဆီသို့ ပို့ခြင်း
             try {
-                // Telegram Bot ဆီသို့ data ပို့ခြင်း
-                tg.sendData(JSON.stringify({image: imageData}));
-                tg.close();
-            } catch (error) {
-                alert("Data ပို့ရာတွင် အမှားအယွင်းရှိနေပါသည် (Data size အရမ်းကြီးနေနိုင်သည်)");
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: imageData,
+                        user_id: tg.initDataUnsafe.user.id,
+                        user_name: tg.initDataUnsafe.user.first_name
+                    })
+                });
+
+                if (response.ok) {
+                    tg.close();
+                } else {
+                    alert("ပို့၍မရပါ");
+                }
+            } catch (e) {
+                alert("Error: " + e);
             }
         });
     </script>
