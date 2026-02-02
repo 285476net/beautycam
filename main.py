@@ -59,10 +59,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Render မှာ Bot ရော Flask ရော အတူတူ Run ရန်
 if __name__ == '__main__':
-    # Bot Start Command ကို Register လုပ်ခြင်း
-    # မှတ်ချက် - Flask နဲ့ တွဲသုံးတာဖြစ်လို့ Polling ကို သီးသန့် Run ရပါမယ်။
-    # ဒါပေမဲ့ Render ပေါ်မှာ Flask ကိုပဲ အဓိက Run မှာဖြစ်လို့ 
-    # Bot ခလုတ်ပေါ်ဖို့အတွက် တစ်ကြိမ်ပဲဖြစ်ဖြစ် Local မှာ Start ပေးထားဖို့လိုပါတယ်။
-    
-    port = int(os.environ.get('PORT', 5000))
+    # Render အတွက် Port သတ်မှတ်ချက်
+    port = int(os.environ.get('PORT', 10000)) 
     app.run(host='0.0.0.0', port=port)
