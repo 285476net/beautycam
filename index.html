@@ -4,13 +4,18 @@
     <title>CCTV Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { text-align: center; font-family: sans-serif; background: #f0f0f0; }
-        video { width: 90%; border-radius: 10px; margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 16px; background: #0088cc; color: white; border: none; border-radius: 5px; margin-top: 10px; }
+        body { text-align: center; font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+        video { width: 100%; max-width: 400px; border-radius: 10px; background: #000; }
+        button { 
+            padding: 12px 24px; font-size: 16px; background: #0088cc; 
+            color: white; border: none; border-radius: 8px; margin-top: 15px;
+            cursor: pointer;
+        }
+        button:active { background: #006699; }
     </style>
 </head>
 <body>
-    <h3>CCTV Camera Access</h3>
+    <h3>Camera Access</h3>
     <video id="video" autoplay playsinline></video>
     <br>
     <button id="capture">ဓာတ်ပုံရိုက်ပြီး ပို့မည်</button>
@@ -20,27 +25,42 @@
         const video = document.getElementById('video');
         const captureButton = document.getElementById('capture');
         const canvas = document.getElementById('canvas');
+        const tg = window.Telegram.WebApp;
 
-        // User ရဲ့ Camera ကို Access လုပ်ခြင်း
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => { alert("Camera ဖွင့်မရပါ: " + err); });
+        tg.ready();
+        tg.expand(); // App ကို screen အပြည့်ချဲ့လိုက်တာပါ
+
+        // ရှေ့ကင်မရာ (သို့) နောက်ကင်မရာ ရွေးချယ်နိုင်ရန် facingMode ထည့်သွင်းခြင်း
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user" } // "user" က ရှေ့ကင်မရာ၊ "environment" က နောက်ကင်မရာ
+        })
+        .then(stream => { 
+            video.srcObject = stream; 
+        })
+        .catch(err => { 
+            alert("Camera Error: " + err.name); 
+        });
 
         captureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            
+            // ပုံကို အနည်းငယ် သေးလိုက်ခြင်း (Data limit မကျော်စေရန်)
+            canvas.width = 400; 
+            canvas.height = (video.videoHeight / video.videoWidth) * 400;
+            
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // ပုံကို Base64 data အဖြစ်ပြောင်းလဲခြင်း
-            const imageData = canvas.toDataURL('image/jpeg');
+            // quality ကို 0.5 (50%) ထိလျှော့ချလိုက်ခြင်းဖြင့် string တိုသွားစေသည်
+            const imageData = canvas.toDataURL('image/jpeg', 0.5);
             
-            // Telegram Bot ဆီသို့ data ပြန်ပို့ခြင်း
-            window.Telegram.WebApp.sendData(JSON.stringify({image: imageData}));
-            window.Telegram.WebApp.close();
+            try {
+                // Telegram Bot ဆီသို့ data ပို့ခြင်း
+                tg.sendData(JSON.stringify({image: imageData}));
+                tg.close();
+            } catch (error) {
+                alert("Data ပို့ရာတွင် အမှားအယွင်းရှိနေပါသည် (Data size အရမ်းကြီးနေနိုင်သည်)");
+            }
         });
-
-        window.Telegram.WebApp.ready();
     </script>
 </body>
 </html>
