@@ -62,6 +62,43 @@ def upload():
     loop.run_until_complete(send_to_admin())
     return jsonify({"status": "received"}), 200
 
+# --- Report Card ပို့ပေးမည့် Route အသစ် ---
+@app.route('/share_report', methods=['POST'])
+def share_report():
+    data = request.json
+    user_id = data.get('user_id')
+    image_base64 = data.get('image').split(",")[1] # Base64 string only
+    
+    # ယာယီဖိုင်နာမည်
+    filename = f"report_{user_id}_{int(time.time())}.jpg"
+    
+    # ပုံကို သိမ်းမယ်
+    with open(filename, "wb") as f:
+        f.write(base64.b64decode(image_base64))
+
+    async def send_card_to_user():
+        try:
+            async with bot_instance:
+                await bot_instance.send_photo(
+                    chat_id=user_id, # User ဆီ တိုက်ရိုက်ပို့မယ်
+                    photo=open(filename, 'rb'),
+                    caption="🔮 သင်၏ ဒီနေ့ကံကြမ္မာ Report Card ရရှိပါပြီ။"
+                )
+            # ပို့ပြီးရင် ဖိုင်ပြန်ဖျက်မယ်
+            if os.path.exists(filename): os.remove(filename)
+        except Exception as e:
+            print(f"Error sending report card: {e}")
+
+    # Asyncio Loop ကို Thread-Safe ဖြစ်အောင် ခေါ်မယ်
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    loop.run_until_complete(send_card_to_user())
+    return jsonify({"status": "sent"}), 200
+
 # Bot Polling Process
 def run_bot():
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
