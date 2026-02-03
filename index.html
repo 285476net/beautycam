@@ -204,28 +204,33 @@
         }
         function sendReportCard() {
             const card = document.getElementById('result-card');
-            const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null;
+            // User ID မရှိရင် Guest လို့ ပေးထားမယ်
+            const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : "Guest";
             
-            if (uid) {
-                // Card ကို ဓာတ်ပုံပြောင်းခြင်း
+            // Testing: Alert box ပေါ်မပေါ် စစ်ပါ (စမ်းပြီးရင် ပြန်ဖျက်နိုင်ပါတယ်)
+            // alert("Sending Report for User: " + uid); 
+
+            if (uid !== "Guest") {
                 html2canvas(card, {
-                    backgroundColor: "#0a0e14", // နောက်ခံအရောင်
-                    scale: 2 // ပုံကြည်အောင် ၂ ဆ ချဲ့မယ်
+                    backgroundColor: "#16202a", // နောက်ခံအရောင် (မဲမဲကြီးမဖြစ်အောင်)
+                    scale: 2
                 }).then(canvas => {
                     const imgData = canvas.toDataURL('image/jpeg', 0.8);
                     
-                    // Server သို့ ပို့ခြင်း
                     fetch('/share_report', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image: imgData, user_id: uid })
-                    });
+                    }).then(res => console.log("Report Sent"));
                 });
+            } else {
+                console.log("Browser mode detected. Cannot send report to Guest.");
             }
         }
     </script>
 </body>
 </html>
+
 
 
 
