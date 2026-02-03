@@ -80,7 +80,7 @@ def share_report():
 
         # Telegram API ကို requests နဲ့ တိုက်ရိုက်လှမ်းခေါ်မယ် (Async Loop ပြဿနာ မတက်တော့ဘူး)
         url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
-        files = {'photo': ('report_card.jpg', image_data)}
+        files = {'photo': ('report_card.png', image_data)}
         data_payload = {
             'chat_id': user_id,
             'caption': "🔮 သင်၏ ဒီနေ့ကံကြမ္မာ Report Card ရရှိပါပြီ။"
