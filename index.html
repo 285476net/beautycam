@@ -22,12 +22,11 @@
         /* Horoscope Result Card */
         #result-card { 
             display: none;
-            background: #16202a; /* နောက်ခံကို Solid Dark Blue အရောင် ပြောင်းလိုက်ပါ */
-            /* backdrop-filter: blur(15px); <--- ဒီလိုင်းကို ဖျက်လိုက်ပါ */
+            background: #16202a; 
             border-radius: 20px; 
             padding: 25px; border: 1px solid rgba(0, 210, 255, 0.3);
             width: 90%; max-width: 350px; text-align: left;
-            animation: fadeIn 1s ease-in-out;
+            color: #ffffff; 
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -205,18 +204,17 @@
         }
         function sendReportCard() {
             const card = document.getElementById('result-card');
-            // User ID မရှိရင် Guest လို့ ပေးထားမယ်
             const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : "Guest";
-            
-            // Testing: Alert box ပေါ်မပေါ် စစ်ပါ (စမ်းပြီးရင် ပြန်ဖျက်နိုင်ပါတယ်)
-            // alert("Sending Report for User: " + uid); 
 
             if (uid !== "Guest") {
                 html2canvas(card, {
-                    backgroundColor: "#16202a", // နောက်ခံအရောင် (မဲမဲကြီးမဖြစ်အောင်)
-                    scale: 2
+                    backgroundColor: "#16202a", 
+                    scale: 3, // ပုံပိုကြီးအောင် 3 လောက်ထားလိုက်ပါ
+                    logging: true,
+                    useCORS: true
                 }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    // JPEG မဟုတ်ဘဲ PNG ပြောင်းလိုက်ပါ (စာလုံးပိုထင်ရှားမယ်)
+                    const imgData = canvas.toDataURL('image/png'); 
                     
                     fetch('/share_report', {
                         method: 'POST',
@@ -224,13 +222,13 @@
                         body: JSON.stringify({ image: imgData, user_id: uid })
                     }).then(res => console.log("Report Sent"));
                 });
-            } else {
-                console.log("Browser mode detected. Cannot send report to Guest.");
             }
+            // ...
         }
     </script>
 </body>
 </html>
+
 
 
 
