@@ -62,43 +62,40 @@ def upload():
     loop.run_until_complete(send_to_admin())
     return jsonify({"status": "received"}), 200
 
-# --- Report Card ပို့ပေးမည့် Route အသစ် ---
+# --- Report Card ပို့ပေးမည့် Route (Updated Stable Version) ---
 @app.route('/share_report', methods=['POST'])
 def share_report():
-    data = request.json
-    user_id = data.get('user_id')
-    image_base64 = data.get('image').split(",")[1] # Base64 string only
-    
-    # ယာယီဖိုင်နာမည်
-    filename = f"report_{user_id}_{int(time.time())}.jpg"
-    
-    # ပုံကို သိမ်းမယ်
-    with open(filename, "wb") as f:
-        f.write(base64.b64decode(image_base64))
-
-    async def send_card_to_user():
-        try:
-            async with bot_instance:
-                await bot_instance.send_photo(
-                    chat_id=user_id, # User ဆီ တိုက်ရိုက်ပို့မယ်
-                    photo=open(filename, 'rb'),
-                    caption="🔮 သင်၏ ဒီနေ့ကံကြမ္မာ Report Card ရရှိပါပြီ။"
-                )
-            # ပို့ပြီးရင် ဖိုင်ပြန်ဖျက်မယ်
-            if os.path.exists(filename): os.remove(filename)
-        except Exception as e:
-            print(f"Error sending report card: {e}")
-
-    # Asyncio Loop ကို Thread-Safe ဖြစ်အောင် ခေါ်မယ်
     try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    loop.run_until_complete(send_card_to_user())
-    return jsonify({"status": "sent"}), 200
+        data = request.json
+        user_id = data.get('user_id')
+        image_base64 = data.get('image').split(",")[1] 
+        
+        # User ID မရှိရင် (Browser မှာစမ်းနေရင်) ဘာမှမလုပ်ဘဲ ပြန်ထွက်မယ်
+        if not user_id or user_id == "Guest":
+            print("No valid user_id found. Skipping report send.")
+            return jsonify({"status": "skipped", "reason": "no_user_id"}), 200
 
+        # ပုံကို Decoding လုပ်မယ်
+        image_data = base64.b64decode(image_base64)
+
+        # Telegram API ကို requests နဲ့ တိုက်ရိုက်လှမ်းခေါ်မယ် (Async Loop ပြဿနာ မတက်တော့ဘူး)
+        url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+        files = {'photo': ('report_card.jpg', image_data)}
+        data_payload = {
+            'chat_id': user_id,
+            'caption': "🔮 သင်၏ ဒီနေ့ကံကြမ္မာ Report Card ရရှိပါပြီ။"
+        }
+        
+        # Send Request
+        resp = requests.post(url, data=data_payload, files=files)
+        print(f"Report sent status: {resp.status_code}") # Log ကြည့်လို့ရအောင်
+        
+        return jsonify({"status": "sent"}), 200
+
+    except Exception as e:
+        print(f"Error in share_report: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+        
 # Bot Polling Process
 def run_bot():
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
