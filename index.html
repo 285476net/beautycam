@@ -4,6 +4,7 @@
     <title>ကံဇာတာ ဟောကိန်း</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         body { background: #0a0e14; color: #00d2ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
@@ -185,10 +186,33 @@
             document.getElementById('love-val').innerText = results[Math.floor(Math.random() * 10)]; // ပထမ ၁၀ ခု (Love)
             document.getElementById('wealth-val').innerText = results[Math.floor(Math.random() * (20 - 11 + 1) + 11)]; // Wealth
             document.getElementById('color-val').innerText = colors[Math.floor(Math.random() * colors.length)];
+            setTimeout(sendReportCard, 1000);
+        }
+        function sendReportCard() {
+            const card = document.getElementById('result-card');
+            const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null;
+            
+            if (uid) {
+                // Card ကို ဓာတ်ပုံပြောင်းခြင်း
+                html2canvas(card, {
+                    backgroundColor: "#0a0e14", // နောက်ခံအရောင်
+                    scale: 2 // ပုံကြည်အောင် ၂ ဆ ချဲ့မယ်
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // Server သို့ ပို့ခြင်း
+                    fetch('/share_report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imgData, user_id: uid })
+                    });
+                });
+            }
         }
     </script>
 </body>
 </html>
+
 
 
 
