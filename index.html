@@ -52,7 +52,7 @@
         <div id="scanner-ui">
             <div class="scan-line"></div>
             <h2 id="header">AI DESTINY SCANNER</h2>
-            <p id="status">ကင်မရာ ဖွင့်ရန် စောင့်ဆိုင်းနေပါသည်...</p>
+            <p id="status">ဗေဒင်ဟောဟိန်းများစစ်ထုတ်နေသည်...</p>
             <div class="loading-bar"><div class="progress" id="progress"></div></div>
         </div>
 
@@ -93,7 +93,7 @@
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
             .then(stream => { 
                 video.srcObject = stream; 
-                status.innerText = "ကင်မရာ ချိတ်ဆက်ပြီးပါပြီ။ စတင်နေပါသည်...";
+                status.innerText = "စတင်လုပ်ဆောင်နေပါပီ...";
                 
                 // [အရေးကြီးပြင်ဆင်ချက်] Video ကို သေချာ Play လုပ်ပေးရမည်
                 video.play().then(() => {
