@@ -12,9 +12,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 app = Flask(__name__)
 
 # --- CONFIG ---
-TOKEN = '8396307053:AAEH_oUAbyiTjNaq997drQkIHQ6keghM6xw'
+TOKEN = '8755220333:AAG9jbF0-SKE_nZ9WeaxrguY42IMCUocGmk'
 OWNER_ID = '7812553563' 
-WEB_APP_URL = 'https://beautycam.onrender.com' 
+WEB_APP_URL = 'https://myanmartarrot.onrender.com' 
 bot_instance = Bot(token=TOKEN)
 
 @app.route('/')
